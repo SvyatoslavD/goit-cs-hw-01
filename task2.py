@@ -146,27 +146,18 @@ class Parser:
         node = self.factor()
 
         # ! Змініть метод term, щоб він включав обробку множення та ділення.
-        while self.current_token.type != TokenType.EOF:
+        while self.current_token.type in (TokenType.MUL, TokenType.DIV):
             token = self.current_token
             if token.type == TokenType.MUL:
                 self.eat(TokenType.MUL)
             elif token.type == TokenType.DIV:
                 self.eat(TokenType.DIV)
-            elif token.type == TokenType.PLUS:
-                return node
-            elif token.type == TokenType.MINUS:
-                return node
-            elif token.type == TokenType.RPAREN:
-                return node
-            else:
-                self.error()
 
             node = BinOp(left=node, op=token, right=self.factor())
 
         return node
 
     def expr(self):
-        #import pdb; pdb.set_trace()
         node = self.term()
 
         while self.current_token.type in (TokenType.PLUS, TokenType.MINUS):
@@ -208,7 +199,7 @@ class Interpreter:
         elif node.op.type == TokenType.MUL:
             return self.visit(node.left) * self.visit(node.right)
         elif node.op.type == TokenType.DIV:
-            return self.visit(node.left) / self.visit(node.right)
+            return self.visit(node.left) // self.visit(node.right)
 
     def visit_Num(self, node):
         return node.value
@@ -224,6 +215,124 @@ class Interpreter:
 
     def generic_visit(self, node):
         raise Exception(f"Немає методу visit_{type(node).__name__}")
+
+
+def test(eq, expected_value):
+    lexer = Lexer(eq)
+    parser = Parser(lexer)
+    interpreter = Interpreter(parser)
+    result = interpreter.interpret()
+    # print(result)
+    assert result == expected_value
+
+
+def tests():
+    test("1", 1)
+    test("(1)", 1)
+
+    test("(1) + 1", 2)
+    test("(1) + 2", 3)
+    test("(1) * 2", 2)
+    test("(2) * 1", 2)
+    test("(2) - 1", 1)
+    test("(2) / 1", 2)
+    test("(2) / 2", 1)
+
+    test("(1) + (1)", 2)
+    test("(1) + (2)", 3)
+    test("(1) * (2)", 2)
+    test("(2) * (1)", 2)
+    test("(2) - (1)", 1)
+    test("(2) / (1)", 2)
+    test("(2) / (2)", 1)
+
+    test("1 + 1", 2)
+    test("2 + 1", 3)
+    test("2 - 1", 1)
+    test("2 * 1", 2)
+    test("2 * 2", 4)
+    test("2 / 1", 2)
+    test("2 / 2", 1)
+
+    test("(1 + 1)", 2)
+    test("(2 + 1)", 3)
+    test("(2 - 1)", 1)
+    test("(2 * 1)", 2)
+    test("(2 * 2)", 4)
+    test("(2 / 1)", 2)
+    test("(2 / 2)", 1)
+
+    test("((1) + 1)", 2)
+    test("((2) + 1)", 3)
+    test("((2) - 1)", 1)
+    test("((2) * 1)", 2)
+    test("((2) * 2)", 4)
+    test("((2) / 1)", 2)
+    test("((2) / 2)", 1)
+
+    test("(((1 + 1)))", 2)
+    test("(((2 + 1)))", 3)
+    test("(((2 - 1)))", 1)
+    test("(((2 * 1)))", 2)
+    test("(((2 * 2)))", 4)
+    test("(((2 / 1)))", 2)
+    test("(((2 / 2)))", 1)
+
+    test("((1) + (1))", 2)
+    test("((1) + (2))", 3)
+    test("((1) * (2))", 2)
+    test("((2) * (1))", 2)
+    test("((2) - (1))", 1)
+    test("((2) / (1))", 2)
+    test("((2) / (2))", 1)
+
+    test("(((1) + (1)))", 2)
+    test("(((1) + (2)))", 3)
+    test("(((1) * (2)))", 2)
+    test("(((2) * (1)))", 2)
+    test("(((2) - (1)))", 1)
+    test("(((2) / (1)))", 2)
+    test("(((2) / (2)))", 1)
+
+    test("(1 + (1) + 1)", 1+2)
+    test("(1 + (2) + 1)", 1+3)
+    test("(1 + (2) - 1)", 1+1)
+    test("(1 + (2) * 1)", 1+2)
+    test("(1 + (2) * 2)", 1+4)
+    test("(1 + (2) / 1)", 1+2)
+    test("(1 + (2) / 2)", 1+1)
+
+    test("((1) + 1) + 1", 2+1)
+    test("((2) + 1) + 1", 3+1)
+    test("((2) - 1) + 1", 1+1)
+    test("((2) * 1) + 1", 2+1)
+    test("((2) * 2) + 1", 4+1)
+    test("((2) / 1) + 1", 2+1)
+    test("((2) / 2) + 1", 1+1)
+
+    test("((1) + 1) * 1", 2*1)
+    test("((2) + 1) * 1", 3*1)
+    test("((2) - 1) * 1", 1*1)
+    test("((2) * 1) * 1", 2*1)
+    test("((2) * 2) * 1", 4*1)
+    test("((2) / 1) * 1", 2*1)
+    test("((2) / 2) * 1", 1*1)
+
+    test("((1) + 1) * 2", 2*2)
+    test("((2) + 1) * 2", 3*2)
+    test("((2) - 1) * 2", 1*2)
+    test("((2) * 1) * 2", 2*2)
+    test("((2) * 2) * 2", 4*2)
+    test("((2) / 1) * 2", 2*2)
+    test("((2) / 2) * 2", 1*2)
+
+    test("(1 + (1) + 1) + 1", 1+2+1)
+    test("(1 + (2) + 1) + 1", 1+3+1)
+    test("(1 + (2) - 1) + 1", 1+1+1)
+    test("(1 + (2) * 1) + 1", 1+2+1)
+    test("(1 + (2) * 2) + 1", 1+4+1)
+    test("(1 + (2) / 1) + 1", 1+2+1)
+    test("(1 + (2) / 2) + 1", 1+1+1)
 
 
 def main():
@@ -246,4 +355,5 @@ def main():
 
 
 if __name__ == "__main__":
+    tests()
     main()
